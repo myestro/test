@@ -1041,7 +1041,6 @@ setup_loggers()
                         }
                     }
 
-
                     BOOST_TEST_I_ASSRT( formatter_log_level != invalid_log_level,
                                         boost::runtime::access_to_missing_argument()
                                             << "Unable to determine the log level from '"
@@ -1061,7 +1060,8 @@ setup_loggers()
                         stream_logger.setup( *current_format_specs );
                     }
                     else {
-                        stream_logger.setup( formatter->get_default_stream_description() );
+                        stream_logger.setup( formatter->get_default_stream_description(),
+                                             boost::bind( &unit_test_log_t::set_stream, &unit_test_log, format, boost::ref(std::cout) ));
                     }
                     unit_test_log.set_stream( format, stream_logger.ref() );
                 }

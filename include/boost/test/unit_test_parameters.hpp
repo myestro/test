@@ -19,6 +19,9 @@
 #include <boost/test/utils/runtime/argument.hpp>
 #include <boost/make_shared.hpp>
 
+// Boost
+#include <boost/function/function0.hpp>
+
 // STL
 #include <iostream>
 #include <fstream>
@@ -101,7 +104,8 @@ public:
     {
     }
 
-    void            setup( const const_string& stream_name )
+    void            setup( const const_string& stream_name,
+                           boost::function<void ()> const &cleaner_callback = boost::function<void ()>() )
     {
         if(stream_name.empty())
             return;
@@ -111,9 +115,9 @@ public:
         else if( stream_name == "stdout" )
             m_stream = &std::cout;
         else {
-            m_file = boost::make_shared<std::ofstream>();
-            m_file->open( std::string(stream_name.begin(), stream_name.end()).c_str() );
-            m_stream = m_file.get();
+            m_cleaner = boost::make_shared<callback_cleaner>(cleaner_callback);
+            m_cleaner->m_file.open( std::string(stream_name.begin(), stream_name.end()).c_str() );
+            m_stream = &m_cleaner->m_file;
         }
     }
 
@@ -121,8 +125,22 @@ public:
     std::ostream&   ref() const { return *m_stream; }
 
 private:
+    struct callback_cleaner {
+        callback_cleaner(boost::function<void ()> cleaner_callback)
+        : m_cleaner_callback(cleaner_callback)
+        , m_file() {
+        }
+        ~callback_cleaner() {
+            if( m_cleaner_callback )
+                m_cleaner_callback();
+        }
+        boost::function<void ()> m_cleaner_callback;
+        std::ofstream m_file;
+    };
+
     // Data members
-    boost::shared_ptr<std::ofstream>   m_file;
+    boost::shared_ptr<callback_cleaner>   m_cleaner;
+    //boost::shared_ptr<std::ofstream>   m_file;
     std::ostream*   m_stream;
 };
 
